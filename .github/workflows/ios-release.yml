@@ -41,7 +41,7 @@ jobs:
       app_description: ${{ steps.config.outputs.app_description }}
     steps:
       - name: Récupérer le dépôt
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Charger la configuration de l’app
         id: config
@@ -220,7 +220,7 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Récupérer le dépôt
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Récupérer les métadonnées
         uses: actions/download-artifact@v4
