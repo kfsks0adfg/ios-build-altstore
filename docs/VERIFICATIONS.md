@@ -14,15 +14,26 @@
 - Le workflow ne pousse ni sur `main` ni sur `gh-pages`. La publication emploie
   `configure-pages`, `upload-pages-artifact` et `deploy-pages`.
 - `scripts/check_pack.sh` contrôle les scripts, le JSON et le JavaScript sur Linux.
+- L’exemple SwiftUI a été compilé, empaqueté et publié avec succès sur
+  `macos-26` le 27 octobre 2026.
+- L’exemple React Native 0.88.1 a passé `npm ci`, Bundler, CocoaPods, Xcode et
+  l’empaquetage IPA sur le même runner.
+- Les deux IPA publiques commencent par une archive ZIP valide, et la source
+  publiée contenant les deux applications passe le validateur du dépôt.
+- Le second workflow Pages, exécuté depuis `main`, a été déclenché automatiquement
+  après la publication React Native et a déployé la source avec succès.
 
-## À vérifier par un premier lancement GitHub
+## Erreurs rencontrées et corrigées
 
-- La compilation réelle des deux exemples sous la version de Xcode actuellement
-  installée sur `macos-26`.
-- La version CocoaPods fournie par l’image et sa compatibilité avec React Native
-  0.88.1.
-- L’activation initiale de Pages doit être faite manuellement via
-  **Settings → Pages → GitHub Actions** avant le premier lancement.
+- Les anciennes versions des actions GitHub utilisaient Node 20. Elles ont été
+  remplacées par leurs versions majeures courantes utilisant Node 24.
+- Le premier déploiement Pages depuis le tag `swift-v1.0.0` a été refusé par la
+  protection de l’environnement `github-pages`, limitée à `main`. Le workflow a
+  été séparé : le build sur tag déclenche désormais un workflow Pages sur `main`,
+  sans élargir la règle de protection.
+
+## À vérifier sur l’iPhone
+
 - L’acceptation de l’icône SVG par la version d’AltStore/SideStore utilisée.
   Remplacez-la par un PNG si nécessaire.
 - L’installation et le rafraîchissement, qui dépendent des versions actuelles

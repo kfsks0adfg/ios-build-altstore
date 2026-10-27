@@ -78,5 +78,7 @@ La publication Pages n’écrit dans aucune branche : elle emploie les actions
 officielles GitHub Pages et évite donc le conflit `git push HEAD:main`.
 
 Les contrôles Linux locaux valident le JSON, les scripts, les fichiers de projet
-et le JavaScript. La compilation Xcode complète ne peut être confirmée que par
-un lancement du workflow sur GitHub ; voyez [Vérifications](docs/VERIFICATIONS.md).
+et le JavaScript. Les deux compilations Xcode ont aussi été validées sur GitHub :
+SwiftUI en 42 secondes et React Native en moins de 4 minutes. Les IPA, les deux
+Releases et la source Pages ont ensuite été vérifiées publiquement. Voyez
+[Vérifications](docs/VERIFICATIONS.md).
