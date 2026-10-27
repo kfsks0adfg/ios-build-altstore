@@ -1,0 +1,151 @@
+name: Publish AltStore source
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: Run contenant privacy.json
+        required: true
+        type: string
+      tag_name:
+        description: Tag de la GitHub Release
+        required: true
+        type: string
+      app_name:
+        required: true
+        type: string
+      bundle_id:
+        required: true
+        type: string
+      version:
+        required: true
+        type: string
+      build_version:
+        required: true
+        type: string
+      min_os:
+        required: false
+        default: ""
+        type: string
+      ipa_name:
+        required: true
+        type: string
+      ipa_size:
+        required: true
+        type: string
+      icon_path:
+        required: true
+        type: string
+      developer_name:
+        required: true
+        type: string
+      app_subtitle:
+        required: true
+        type: string
+      app_description:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: altstore-pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Récupérer main
+        uses: actions/checkout@v7
+
+      - name: Récupérer les métadonnées du build iOS
+        uses: actions/download-artifact@v8
+        with:
+          name: ios-source-metadata
+          path: metadata
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.source_run_id }}
+
+      - name: Configurer GitHub Pages
+        id: pages
+        uses: actions/configure-pages@v6
+
+      - name: Préparer la page et la source AltStore
+        shell: bash
+        env:
+          SOURCE_RUN_ID: ${{ inputs.source_run_id }}
+          TAG_NAME: ${{ inputs.tag_name }}
+          APP_NAME: ${{ inputs.app_name }}
+          BUNDLE_ID: ${{ inputs.bundle_id }}
+          VERSION: ${{ inputs.version }}
+          BUILD_VERSION: ${{ inputs.build_version }}
+          MIN_OS: ${{ inputs.min_os }}
+          IPA_NAME: ${{ inputs.ipa_name }}
+          IPA_SIZE: ${{ inputs.ipa_size }}
+          ICON_PATH: ${{ inputs.icon_path }}
+          DEVELOPER_NAME: ${{ inputs.developer_name }}
+          APP_SUBTITLE: ${{ inputs.app_subtitle }}
+          APP_DESCRIPTION: ${{ inputs.app_description }}
+          BASE_URL: ${{ steps.pages.outputs.base_url }}
+        run: |
+          set -euo pipefail
+          mkdir site
+          cp -R docs/. site/
+
+          source_url="${BASE_URL%/}/altstore.json"
+          if ! curl --fail --silent --show-error --location \
+            --retry 3 --retry-delay 2 "$source_url" -o /tmp/current-source.json; then
+            cp docs/altstore.template.json /tmp/current-source.json
+          fi
+
+          download_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/download/${TAG_NAME}/${IPA_NAME}"
+          update_args=(
+            /tmp/current-source.json
+            --output site/altstore.json
+            --app-name "$APP_NAME"
+            --bundle-id "$BUNDLE_ID"
+            --developer-name "$DEVELOPER_NAME"
+            --subtitle "$APP_SUBTITLE"
+            --description "$APP_DESCRIPTION"
+            --icon-url "${BASE_URL%/}/${ICON_PATH}"
+            --version "$VERSION"
+            --build-version "$BUILD_VERSION"
+            --date "$(date -u +%Y-%m-%d)"
+            --download-url "$download_url"
+            --size "$IPA_SIZE"
+            --privacy-file metadata/privacy.json
+          )
+          if [[ -n "$MIN_OS" ]]; then
+            update_args+=(--min-os "$MIN_OS")
+          fi
+          python3 scripts/update_altstore_source.py "${update_args[@]}"
+
+          python3 scripts/validate_altstore_source.py site/altstore.json
+          SOURCE_URL="$source_url" python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          value = json.dumps(os.environ["SOURCE_URL"], ensure_ascii=False)
+          Path("site/config.js").write_text(
+              f"window.IOS_PACK_SOURCE_URL = {value};\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Envoyer l’artefact Pages
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+
+      - name: Publier GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

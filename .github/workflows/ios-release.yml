@@ -17,8 +17,7 @@ on:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
+  actions: write
 
 concurrency:
   group: ios-release-and-pages
@@ -41,7 +40,7 @@ jobs:
       app_description: ${{ steps.config.outputs.app_description }}
     steps:
       - name: Récupérer le dépôt
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Charger la configuration de l’app
         id: config
@@ -82,7 +81,7 @@ jobs:
 
       - name: Installer Node.js
         if: env.APP_TYPE == 'react-native'
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
@@ -204,37 +203,22 @@ jobs:
 
       - name: Conserver les métadonnées pour Pages
         if: github.ref_type == 'tag'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ios-source-metadata
           path: ${{ runner.temp }}/privacy.json
           if-no-files-found: error
           retention-days: 1
 
-  publish-source:
+  dispatch-source:
     if: github.ref_type == 'tag'
     needs: build
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Récupérer le dépôt
-        uses: actions/checkout@v5
-
-      - name: Récupérer les métadonnées
-        uses: actions/download-artifact@v4
-        with:
-          name: ios-source-metadata
-          path: metadata
-
-      - name: Configurer GitHub Pages
-        id: pages
-        uses: actions/configure-pages@v5
-
-      - name: Préparer la page et la source AltStore
+      - name: Déclencher la publication Pages depuis main
         shell: bash
         env:
+          GH_TOKEN: ${{ github.token }}
           APP_NAME: ${{ needs.build.outputs.app_name }}
           BUNDLE_ID: ${{ needs.build.outputs.bundle_id }}
           VERSION: ${{ needs.build.outputs.version }}
@@ -246,59 +230,22 @@ jobs:
           DEVELOPER_NAME: ${{ needs.build.outputs.developer_name }}
           APP_SUBTITLE: ${{ needs.build.outputs.app_subtitle }}
           APP_DESCRIPTION: ${{ needs.build.outputs.app_description }}
-          BASE_URL: ${{ steps.pages.outputs.base_url }}
         run: |
           set -euo pipefail
-          mkdir site
-          cp -R docs/. site/
-
-          source_url="${BASE_URL%/}/altstore.json"
-          if ! curl --fail --silent --show-error --location \
-            --retry 3 --retry-delay 2 "$source_url" -o /tmp/current-source.json; then
-            cp docs/altstore.template.json /tmp/current-source.json
-          fi
-
-          download_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/${IPA_NAME}"
-          update_args=(
-            /tmp/current-source.json
-            --output site/altstore.json
-            --app-name "$APP_NAME"
-            --bundle-id "$BUNDLE_ID"
-            --developer-name "$DEVELOPER_NAME"
-            --subtitle "$APP_SUBTITLE"
-            --description "$APP_DESCRIPTION"
-            --icon-url "${BASE_URL%/}/${ICON_PATH}"
-            --version "$VERSION"
-            --build-version "$BUILD_VERSION"
-            --date "$(date -u +%Y-%m-%d)"
-            --download-url "$download_url"
-            --size "$IPA_SIZE"
-            --privacy-file metadata/privacy.json
-          )
-          if [[ -n "$MIN_OS" ]]; then
-            update_args+=(--min-os "$MIN_OS")
-          fi
-          python3 scripts/update_altstore_source.py "${update_args[@]}"
-
-          python3 scripts/validate_altstore_source.py site/altstore.json
-          SOURCE_URL="$source_url" python3 - <<'PY'
-          import json
-          import os
-          from pathlib import Path
-
-          value = json.dumps(os.environ["SOURCE_URL"], ensure_ascii=False)
-          Path("site/config.js").write_text(
-              f"window.IOS_PACK_SOURCE_URL = {value};\n",
-              encoding="utf-8",
-          )
-          PY
-
-      - name: Envoyer l’artefact Pages
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: site
-
-      - name: Publier GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          gh workflow run publish-pages.yml \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref main \
+            -f source_run_id="$GITHUB_RUN_ID" \
+            -f tag_name="$GITHUB_REF_NAME" \
+            -f app_name="$APP_NAME" \
+            -f bundle_id="$BUNDLE_ID" \
+            -f version="$VERSION" \
+            -f build_version="$BUILD_VERSION" \
+            -f min_os="$MIN_OS" \
+            -f ipa_name="$IPA_NAME" \
+            -f ipa_size="$IPA_SIZE" \
+            -f icon_path="$ICON_PATH" \
+            -f developer_name="$DEVELOPER_NAME" \
+            -f app_subtitle="$APP_SUBTITLE" \
+            -f app_description="$APP_DESCRIPTION"
 
