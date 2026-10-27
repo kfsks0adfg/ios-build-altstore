@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#111827">
+    <title>Mes apps iOS</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="config.js" defer></script>
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <main>
+      <section class="hero">
+        <p class="eyebrow">SOURCE ALTSTORE PERSONNELLE</p>
+        <h1>Installer mes builds iOS,<br>directement sur l’iPhone.</h1>
+        <p class="intro">Les IPA sont compilées sans signature sur GitHub, puis
+          AltStore ou SideStore les signe avec votre compte Apple gratuit.</p>
+        <div class="actions">
+          <a id="open-altstore" class="button primary" href="#">Ajouter à AltStore</a>
+          <button id="copy-source" class="button secondary" type="button">Copier l’URL</button>
+        </div>
+        <code id="source-url" class="source-url">Chargement…</code>
+        <p id="copy-status" class="status" role="status" aria-live="polite"></p>
+      </section>
+
+      <section class="panel" aria-labelledby="apps-title">
+        <div class="section-heading">
+          <p class="eyebrow">BUILDS DISPONIBLES</p>
+          <h2 id="apps-title">Applications</h2>
+        </div>
+        <div id="apps" class="apps">
+          <p class="muted">Lecture de la source AltStore…</p>
+        </div>
+      </section>
+
+      <section class="steps" aria-labelledby="steps-title">
+        <div class="section-heading">
+          <p class="eyebrow">EN TROIS ÉTAPES</p>
+          <h2 id="steps-title">Installation</h2>
+        </div>
+        <ol>
+          <li><span>1</span><div><strong>Installez AltStore ou SideStore</strong><p>La configuration initiale suit la documentation du projet choisi.</p></div></li>
+          <li><span>2</span><div><strong>Ajoutez cette source</strong><p>Utilisez le bouton AltStore ou collez l’URL dans Sources.</p></div></li>
+          <li><span>3</span><div><strong>Rafraîchissez avant 7 jours</strong><p>Un compte Apple gratuit exige le renouvellement régulier de la signature.</p></div></li>
+        </ol>
+      </section>
+    </main>
+    <footer>Builds personnels · Pas de distribution App Store</footer>
+  </body>
+</html>
+

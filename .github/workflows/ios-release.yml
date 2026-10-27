@@ -1,0 +1,304 @@
+name: iOS release
+
+on:
+  push:
+    tags:
+      - "swift-v*"
+      - "rn-v*"
+  workflow_dispatch:
+    inputs:
+      example:
+        description: Projet à compiler sans publier de release
+        required: true
+        type: choice
+        options:
+          - swift
+          - react-native
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: ios-release-and-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: macos-26
+    outputs:
+      app_name: ${{ steps.config.outputs.app_name }}
+      bundle_id: ${{ steps.metadata.outputs.bundle_id }}
+      version: ${{ steps.metadata.outputs.version }}
+      build_version: ${{ steps.metadata.outputs.build_version }}
+      min_os: ${{ steps.metadata.outputs.min_os }}
+      ipa_name: ${{ steps.package.outputs.ipa_name }}
+      ipa_size: ${{ steps.package.outputs.ipa_size }}
+      icon_path: ${{ steps.config.outputs.icon_path }}
+      developer_name: ${{ steps.config.outputs.developer_name }}
+      app_subtitle: ${{ steps.config.outputs.app_subtitle }}
+      app_description: ${{ steps.config.outputs.app_description }}
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+
+      - name: Charger la configuration de l’app
+        id: config
+        shell: bash
+        env:
+          MANUAL_EXAMPLE: ${{ inputs.example }}
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_REF_TYPE:-}" == "tag" && "$GITHUB_REF_NAME" == swift-v* ]]; then
+            config_file=.ios-release/swift.env
+          elif [[ "${GITHUB_REF_TYPE:-}" == "tag" && "$GITHUB_REF_NAME" == rn-v* ]]; then
+            config_file=.ios-release/react-native.env
+          elif [[ "$MANUAL_EXAMPLE" == "react-native" ]]; then
+            config_file=.ios-release/react-native.env
+          else
+            config_file=.ios-release/swift.env
+          fi
+
+          set -a
+          source "$config_file"
+          set +a
+
+          for variable in APP_NAME SCHEME PROJECT_FILE APP_TYPE WORKING_DIRECTORY ICON_PATH; do
+            [[ -n "${!variable:-}" ]] || { echo "Configuration absente: $variable" >&2; exit 1; }
+          done
+          [[ "$APP_TYPE" == swift || "$APP_TYPE" == react-native ]] || {
+            echo "APP_TYPE doit valoir swift ou react-native" >&2
+            exit 1
+          }
+
+          cat "$config_file" >> "$GITHUB_ENV"
+
+          echo "app_name=$APP_NAME" >> "$GITHUB_OUTPUT"
+          echo "icon_path=$ICON_PATH" >> "$GITHUB_OUTPUT"
+          echo "developer_name=${DEVELOPER_NAME:-Moi}" >> "$GITHUB_OUTPUT"
+          echo "app_subtitle=${APP_SUBTITLE:-Build_iOS_personnel}" >> "$GITHUB_OUTPUT"
+          echo "app_description=${APP_DESCRIPTION:-Build_iOS_compile_automatiquement}" >> "$GITHUB_OUTPUT"
+
+      - name: Installer Node.js
+        if: env.APP_TYPE == 'react-native'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: ${{ env.WORKING_DIRECTORY }}/package-lock.json
+
+      - name: Installer les dépendances JavaScript
+        if: env.APP_TYPE == 'react-native'
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm ci
+
+      - name: Installer les pods iOS
+        if: env.APP_TYPE == 'react-native'
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -f Gemfile ]]; then
+            bundle config set --local path "$RUNNER_TEMP/vendor-bundle"
+            bundle install --jobs 4 --retry 3
+            (
+              cd ios
+              bundle exec pod install
+            )
+          else
+            (
+              cd ios
+              pod install
+            )
+          fi
+
+      - name: Résoudre les paquets Swift
+        if: env.APP_TYPE == 'swift'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$PROJECT_FILE" == *.xcworkspace ]]; then
+            xcodebuild -workspace "$PROJECT_FILE" -scheme "$SCHEME" -resolvePackageDependencies
+          else
+            xcodebuild -project "$PROJECT_FILE" -scheme "$SCHEME" -resolvePackageDependencies
+          fi
+
+      - name: Compiler sans signature
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$PROJECT_FILE" == *.xcworkspace ]]; then
+            container=(-workspace "$PROJECT_FILE")
+          elif [[ "$PROJECT_FILE" == *.xcodeproj ]]; then
+            container=(-project "$PROJECT_FILE")
+          else
+            echo "PROJECT_FILE doit être un .xcworkspace ou un .xcodeproj" >&2
+            exit 1
+          fi
+
+          xcodebuild "${container[@]}" \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination "generic/platform=iOS" \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            clean build
+
+      - name: Lire les métadonnées de l’app compilée
+        id: metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          product_dir="$RUNNER_TEMP/DerivedData/Build/Products/Release-iphoneos"
+          apps=()
+          for candidate in "$product_dir"/*.app; do
+            [[ -d "$candidate" ]] && apps+=("$candidate")
+          done
+          if [[ ${#apps[@]} -ne 1 ]]; then
+            printf 'Une seule app était attendue, %s trouvée(s):\n' "${#apps[@]}" >&2
+            printf '  %s\n' "${apps[@]:-aucune}" >&2
+            exit 1
+          fi
+          app_path="${apps[0]}"
+          echo "APP_PATH=$app_path" >> "$GITHUB_ENV"
+          python3 scripts/read_app_metadata.py "$app_path/Info.plist" \
+            --github-output "$GITHUB_OUTPUT" \
+            --privacy-output "$RUNNER_TEMP/privacy.json"
+
+      - name: Créer l’IPA
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+          package_dir="$RUNNER_TEMP/package"
+          ipa_name="${APP_NAME// /-}.ipa"
+          mkdir -p "$package_dir/Payload" "$RUNNER_TEMP/output"
+          ditto "$APP_PATH" "$package_dir/Payload/$(basename "$APP_PATH")"
+          (
+            cd "$package_dir"
+            zip -qry "$RUNNER_TEMP/output/$ipa_name" Payload
+          )
+          echo "ipa_name=$ipa_name" >> "$GITHUB_OUTPUT"
+          echo "ipa_size=$(stat -f%z "$RUNNER_TEMP/output/$ipa_name")" >> "$GITHUB_OUTPUT"
+
+      - name: Publier la GitHub Release
+        if: github.ref_type == 'tag'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IPA_PATH: ${{ runner.temp }}/output/${{ steps.package.outputs.ipa_name }}
+        run: |
+          set -euo pipefail
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "$IPA_PATH" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" "$IPA_PATH" \
+              --verify-tag \
+              --generate-notes \
+              --title "$APP_NAME ${GITHUB_REF_NAME}"
+          fi
+
+      - name: Conserver les métadonnées pour Pages
+        if: github.ref_type == 'tag'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-source-metadata
+          path: ${{ runner.temp }}/privacy.json
+          if-no-files-found: error
+          retention-days: 1
+
+  publish-source:
+    if: github.ref_type == 'tag'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+
+      - name: Récupérer les métadonnées
+        uses: actions/download-artifact@v4
+        with:
+          name: ios-source-metadata
+          path: metadata
+
+      - name: Configurer GitHub Pages
+        id: pages
+        uses: actions/configure-pages@v5
+
+      - name: Préparer la page et la source AltStore
+        shell: bash
+        env:
+          APP_NAME: ${{ needs.build.outputs.app_name }}
+          BUNDLE_ID: ${{ needs.build.outputs.bundle_id }}
+          VERSION: ${{ needs.build.outputs.version }}
+          BUILD_VERSION: ${{ needs.build.outputs.build_version }}
+          MIN_OS: ${{ needs.build.outputs.min_os }}
+          IPA_NAME: ${{ needs.build.outputs.ipa_name }}
+          IPA_SIZE: ${{ needs.build.outputs.ipa_size }}
+          ICON_PATH: ${{ needs.build.outputs.icon_path }}
+          DEVELOPER_NAME: ${{ needs.build.outputs.developer_name }}
+          APP_SUBTITLE: ${{ needs.build.outputs.app_subtitle }}
+          APP_DESCRIPTION: ${{ needs.build.outputs.app_description }}
+          BASE_URL: ${{ steps.pages.outputs.base_url }}
+        run: |
+          set -euo pipefail
+          mkdir site
+          cp -R docs/. site/
+
+          source_url="${BASE_URL%/}/altstore.json"
+          if ! curl --fail --silent --show-error --location \
+            --retry 3 --retry-delay 2 "$source_url" -o /tmp/current-source.json; then
+            cp docs/altstore.template.json /tmp/current-source.json
+          fi
+
+          download_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/${IPA_NAME}"
+          update_args=(
+            /tmp/current-source.json
+            --output site/altstore.json
+            --app-name "$APP_NAME"
+            --bundle-id "$BUNDLE_ID"
+            --developer-name "$DEVELOPER_NAME"
+            --subtitle "$APP_SUBTITLE"
+            --description "$APP_DESCRIPTION"
+            --icon-url "${BASE_URL%/}/${ICON_PATH}"
+            --version "$VERSION"
+            --build-version "$BUILD_VERSION"
+            --date "$(date -u +%Y-%m-%d)"
+            --download-url "$download_url"
+            --size "$IPA_SIZE"
+            --privacy-file metadata/privacy.json
+          )
+          if [[ -n "$MIN_OS" ]]; then
+            update_args+=(--min-os "$MIN_OS")
+          fi
+          python3 scripts/update_altstore_source.py "${update_args[@]}"
+
+          python3 scripts/validate_altstore_source.py site/altstore.json
+          SOURCE_URL="$source_url" python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          value = json.dumps(os.environ["SOURCE_URL"], ensure_ascii=False)
+          Path("site/config.js").write_text(
+              f"window.IOS_PACK_SOURCE_URL = {value};\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Envoyer l’artefact Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Publier GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+

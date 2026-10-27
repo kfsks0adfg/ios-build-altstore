@@ -1,0 +1,10 @@
+{
+  "name": "Mes apps iOS",
+  "subtitle": "Builds personnels signés sur l’iPhone",
+  "description": "Applications compilées automatiquement par GitHub Actions.",
+  "tintColor": "#5856D6",
+  "nsfw": false,
+  "apps": [],
+  "news": []
+}
+
