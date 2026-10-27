@@ -32,6 +32,25 @@ Ce pack recommande SideStore plutôt qu’AltStore Classic dans ce scénario, ca
 AltStore Classic continue normalement à dépendre d’AltServer pour les
 rafraîchissements.
 
+## Note pour iOS 27.2
+
+SideStore fonctionne sur iOS 27.2, mais des utilisateurs rencontrent actuellement
+les erreurs de connexion Apple `-80045` ou `-80046`. Le contournement confirmé
+dans [l’incident SideStore #1693](https://github.com/SideStore/SideStore/issues/1693)
+est le suivant :
+
+1. désactiver **On-Device Anisette** dans `Settings → User Customizations`, puis
+   redémarrer SideStore quand il le demande ;
+2. dans **Anisette Servers**, sélectionner **SideStore (New)**
+   (`new.ani.sidestore.io`) et désactiver **Enable Auto Rotation** ;
+3. ouvrir `Anisette Client Configuration → Remote Server Sync`, toucher
+   **Fetch**, puis **Save as Overrides** ;
+4. revenir dans `User Customizations` et toucher **Reset adi.pb** ;
+5. connecter LocalDevVPN, tenter une seule connexion et attendre le code 2FA.
+
+Cette procédure a aussi été confirmée par des utilisateurs de la version stable,
+mais elle reste un contournement communautaire susceptible d’évoluer.
+
 ## Cas où une installation 100 % iPhone peut exister
 
 ### AltStore PAL dans l’Union européenne
