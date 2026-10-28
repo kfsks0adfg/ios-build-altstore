@@ -1,0 +1,72 @@
+name: Bootstrap iSH tools
+
+on:
+  push:
+    branches: [main]
+    tags: ['bootstrap-v*']
+    paths:
+      - 'bootstrap-ios/**'
+      - '.github/workflows/bootstrap-tools.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: i686-unknown-linux-musl
+
+      - name: Zig
+        uses: mlugg/setup-zig@v2
+        with:
+          version: 0.15.2
+
+      - name: cargo-zigbuild
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-zigbuild
+
+      - name: Tests Rust natifs
+        run: cargo test --locked --manifest-path bootstrap-ios/signer/Cargo.toml
+
+      - name: Compilation statique i686 pour iSH
+        run: >-
+          cargo zigbuild --locked
+          --manifest-path bootstrap-ios/signer/Cargo.toml
+          --release
+          --target i686-unknown-linux-musl
+
+      - name: Paquet et sommes SHA-256
+        run: |
+          mkdir -p dist
+          cp bootstrap-ios/signer/target/i686-unknown-linux-musl/release/ios-bootstrap-signer dist/
+          cp bootstrap-ios/signer/target/i686-unknown-linux-musl/release/ios-bootstrap-pair dist/
+          cp bootstrap-ios/signer/target/i686-unknown-linux-musl/release/ios-bootstrap-install dist/
+          tar -C dist -czf dist/ios-bootstrap-i686-unknown-linux-musl.tar.gz \
+            ios-bootstrap-signer ios-bootstrap-pair ios-bootstrap-install
+          cd dist
+          sha256sum ios-bootstrap-i686-unknown-linux-musl.tar.gz > SHA256SUMS
+
+      - name: Artefact de test
+        uses: actions/upload-artifact@v7
+        with:
+          name: ios-bootstrap-i686
+          path: |
+            dist/ios-bootstrap-i686-unknown-linux-musl.tar.gz
+            dist/SHA256SUMS
+          if-no-files-found: error
+
+      - name: Publication de la release bootstrap
+        if: startsWith(github.ref, 'refs/tags/bootstrap-v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/ios-bootstrap-i686-unknown-linux-musl.tar.gz
+            dist/SHA256SUMS

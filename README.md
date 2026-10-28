@@ -18,10 +18,10 @@ Deux projets exécutables servent de référence :
   au plus 3 apps actives. AltStore/SideStore doit donc rafraîchir les apps.
 - Le workflow produit volontairement une IPA non signée. Elle n’est pas
   installable directement et n’est pas destinée à l’App Store.
-- Le pilotage GitHub peut ensuite se faire depuis l’iPhone, mais l’installation
-  initiale d’AltStore Classic demande généralement AltServer sur macOS ou
-  Windows. L’amorçage de SideStore évolue régulièrement : vérifiez sa procédure
-  actuelle avant de promettre un parcours 100 % iPhone.
+- Le dossier [`bootstrap-ios`](bootstrap-ios/README.md) contient désormais un
+  prototype iOS 27 qui tente le jumelage, la signature et l’installation depuis
+  iSH. Sa compilation est vérifiée ; le parcours complet attend encore une
+  validation sur l’iPhone réel et ne doit pas être présenté comme stable.
 - Un dépôt public rend le code source visible. Un dépôt privé consomme des
   minutes macOS facturées selon le multiplicateur GitHub en vigueur.
 

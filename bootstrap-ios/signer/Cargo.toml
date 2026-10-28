@@ -1,0 +1,22 @@
+[package]
+name = "ios-bootstrap-signer"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+description = "Local iSH signer for the iOS on-device bootstrap"
+
+[dependencies]
+clap = { version = "4.5.51", features = ["derive"] }
+idevice = { version = "=0.1.68", default-features = false, features = ["afc", "installation_proxy", "remote_pairing", "ring", "rsd", "tunnel_tcp_stack"] }
+isideload = { version = "=0.5.0", default-features = false, features = ["fs-storage", "install", "tokio-mt"] }
+mdns-sd = "0.15.1"
+rpassword = "7.4.0"
+rootcause = "0.12.0"
+rustls = { version = "0.23.35", default-features = false, features = ["ring"] }
+serde_json = "1.0.145"
+serde = { version = "1.0.228", features = ["derive"] }
+tempfile = "3.23.0"
+tokio = { version = "1.48.0", features = ["fs", "macros", "net", "rt-multi-thread", "time"] }
+tracing = "0.1.41"
+tracing-subscriber = "0.3.20"
+zeroize = "1.8.2"

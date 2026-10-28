@@ -1,20 +1,25 @@
 # Installer depuis l’iPhone sans ordinateur : état réel des solutions
 
-Vérification effectuée le 27 octobre 2026.
+Vérification mise à jour le 28 octobre 2026.
 
 ## Réponse courte
 
-Sur un iPhone standard à jour, **AltStore Classic ne peut pas être amorcé depuis
-l’iPhone seul** avec un compte Apple gratuit. Apple exige qu’une première app de
-sideloading soit signée puis installée par un hôte déjà autorisé. Le runner macOS
-GitHub peut compiler l’IPA, mais il ne peut pas établir la liaison USB et la
-relation de confiance avec votre iPhone.
+La méthode officielle reste inchangée : **AltStore Classic ne peut pas être
+amorcé depuis l’iPhone seul** avec un compte Apple gratuit. Le runner macOS
+GitHub compile l’IPA, mais ne peut pas établir la liaison avec l’iPhone.
+
+Sur iOS 27, un nouveau jumelage initié par l’iPhone ouvre toutefois une voie
+expérimentale. Ce dépôt contient maintenant un
+[prototype iSH](../bootstrap-ios/README.md) qui annonce l’hôte de jumelage,
+signe l’IPA localement et l’envoie directement à `installation_proxy` via
+LocalDevVPN. Le code compile, mais le parcours complet n’est pas encore validé
+sur l’iPhone cible ; il ne constitue donc pas encore une solution garantie.
 
 SideStore supprime le besoin d’un ordinateur **après sa première installation**,
 pas pendant celle-ci. Sa documentation officielle exige actuellement une
 connexion USB ponctuelle avec `iloader`.
 
-## Solution recommandée sans Windows ni Mac
+## Solution stable recommandée sans Windows ni Mac personnel
 
 Utilisez temporairement l’un des hôtes acceptés par SideStore :
 
@@ -31,6 +36,22 @@ depuis l’iPhone avec LocalDevVPN et une connexion Wi-Fi.
 Ce pack recommande SideStore plutôt qu’AltStore Classic dans ce scénario, car
 AltStore Classic continue normalement à dépendre d’AltServer pour les
 rafraîchissements.
+
+## Prototype 100 % iPhone pour iOS 27
+
+Le prototype évite l’installation OTA, qui ne fonctionne pas avec un profil de
+développement gratuit. Il suit ce chemin :
+
+1. iSH annonce un hôte Bonjour `_remotepairing-pairable-host._tcp` ;
+2. l’iPhone crée son fichier RPPairing depuis le menu Mode développeur ;
+3. `isideload` signe SideStore avec le compte Apple gratuit ;
+4. LocalDevVPN rend les services locaux de l’iPhone accessibles ;
+5. le client ouvre le tunnel TLS-PSK/RSD et installe l’IPA avec
+   `installation_proxy`.
+
+Les limites matérielles à vérifier sont la diffusion Bonjour depuis iSH et la
+suspension d’iSH lors du passage dans Réglages. Les étapes exactes et les règles
+de sécurité sont dans le README du prototype.
 
 ## Note pour iOS 27.2
 
@@ -85,10 +106,10 @@ des certificats d’entreprise partagés :
 - ne communiquez jamais le mot de passe ni le code 2FA de votre compte Apple à
   un service Web de signature.
 
-## Pourquoi GitHub Actions ne peut pas remplacer l’étape USB
+## Pourquoi GitHub Actions ne peut pas remplacer le jumelage
 
-Le runner macOS est distant et éphémère. Il n’a aucun accès USB à l’iPhone, ne
-peut pas recevoir la confirmation « Faire confiance à cet ordinateur » et ne
-peut pas créer le fichier d’appairage propre à l’appareil. Il peut donc produire
-l’IPA et la source AltStore, mais pas amorcer AltStore/SideStore sur le téléphone.
+Le runner macOS est distant et éphémère. Il ne peut pas recevoir la confirmation
+de jumelage et ne peut pas créer le fichier propre à l’appareil. Il produit l’IPA
+et la source AltStore ; le prototype iOS 27 essaie de réaliser localement sur
+l’iPhone la partie que GitHub ne peut pas faire.
 

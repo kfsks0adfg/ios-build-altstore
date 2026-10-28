@@ -38,6 +38,21 @@
   Remplacez-la par un PNG si nécessaire.
 - L’installation et le rafraîchissement, qui dépendent des versions actuelles
   d’AltStore/SideStore et des services Apple.
+- Pour le prototype iSH iOS 27 : la visibilité de l’annonce Bonjour dans Mode
+  développeur, la continuité du processus en arrière-plan, l’ouverture du tunnel
+  TLS-PSK et l’installation par `installation_proxy`.
+
+## Prototype iSH vérifié hors appareil
+
+- Les trois exécutables Rust (jumelage, signature, installation) compilent et
+  passent `cargo test --all-targets` sur Linux.
+- Le jumelage utilise l’API RPPairing initiée par l’appareil introduite dans
+  `idevice` 0.1.68, et non un profil UDID ou une installation OTA.
+- SideStore est téléchargé depuis sa release officielle et contrôlé par le
+  SHA-256 publié avec l’asset.
+- Le mot de passe Apple est demandé sans écho et ne transite pas par GitHub.
+- La validation i686-musl par GitHub Actions reste nécessaire avant de publier
+  la première release du prototype.
 
 ## Diagnostic d’un build
 

@@ -9,4 +9,5 @@ Pods/
 *.xcodeproj/xcuserdata/
 *.ipa
 site/
+target/
 
