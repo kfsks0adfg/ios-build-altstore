@@ -12,9 +12,8 @@ Elle exécute trois opérations dans iSH :
 ## État exact
 
 - **Vérifié hors iPhone** : compilation Rust native, intégration des protocoles
-  RPPairing/TLS-PSK/RSD, signature avec `isideload` et scripts shell.
-- **À vérifier en CI** : compilation statique i686-musl réellement exécutable
-  dans iSH.
+  RPPairing/TLS-PSK/RSD, signature avec `isideload`, scripts shell et compilation
+  statique i686-musl destinée à iSH.
 - **À vérifier sur l’iPhone cible** : diffusion Bonjour depuis le réseau virtuel
   d’iSH, survie du processus pendant le passage dans Réglages, ouverture du port
   de tunnel par iOS 27.2 et installation réelle.

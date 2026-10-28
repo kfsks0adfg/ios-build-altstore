@@ -51,8 +51,9 @@
 - SideStore est téléchargé depuis sa release officielle et contrôlé par le
   SHA-256 publié avec l’asset.
 - Le mot de passe Apple est demandé sans écho et ne transite pas par GitHub.
-- La validation i686-musl par GitHub Actions reste nécessaire avant de publier
-  la première release du prototype.
+- La compilation i686-musl, le paquet des trois exécutables et son artefact ont
+  réussi dans le [run GitHub Actions 40620991549](https://github.com/kfsks0adfg/ios-build-altstore/actions/runs/40620991549)
+  le 28 octobre 2026.
 
 ## Diagnostic d’un build
 
