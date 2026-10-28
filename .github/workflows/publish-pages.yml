@@ -1,6 +1,12 @@
-name: Publish AltStore source
+name: Publish Forge iOS
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - "docs/**"
+      - ".github/workflows/publish-pages.yml"
   workflow_dispatch:
     inputs:
       source_run_id:
@@ -67,6 +73,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Récupérer les métadonnées du build iOS
+        if: github.event_name == 'workflow_dispatch'
         uses: actions/download-artifact@v8
         with:
           name: ios-source-metadata
@@ -106,27 +113,31 @@ jobs:
             cp docs/altstore.template.json /tmp/current-source.json
           fi
 
-          download_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/download/${TAG_NAME}/${IPA_NAME}"
-          update_args=(
-            /tmp/current-source.json
-            --output site/altstore.json
-            --app-name "$APP_NAME"
-            --bundle-id "$BUNDLE_ID"
-            --developer-name "$DEVELOPER_NAME"
-            --subtitle "$APP_SUBTITLE"
-            --description "$APP_DESCRIPTION"
-            --icon-url "${BASE_URL%/}/${ICON_PATH}"
-            --version "$VERSION"
-            --build-version "$BUILD_VERSION"
-            --date "$(date -u +%Y-%m-%d)"
-            --download-url "$download_url"
-            --size "$IPA_SIZE"
-            --privacy-file metadata/privacy.json
-          )
-          if [[ -n "$MIN_OS" ]]; then
-            update_args+=(--min-os "$MIN_OS")
+          cp /tmp/current-source.json site/altstore.json
+
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            download_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/download/${TAG_NAME}/${IPA_NAME}"
+            update_args=(
+              /tmp/current-source.json
+              --output site/altstore.json
+              --app-name "$APP_NAME"
+              --bundle-id "$BUNDLE_ID"
+              --developer-name "$DEVELOPER_NAME"
+              --subtitle "$APP_SUBTITLE"
+              --description "$APP_DESCRIPTION"
+              --icon-url "${BASE_URL%/}/${ICON_PATH}"
+              --version "$VERSION"
+              --build-version "$BUILD_VERSION"
+              --date "$(date -u +%Y-%m-%d)"
+              --download-url "$download_url"
+              --size "$IPA_SIZE"
+              --privacy-file metadata/privacy.json
+            )
+            if [[ -n "$MIN_OS" ]]; then
+              update_args+=(--min-os "$MIN_OS")
+            fi
+            python3 scripts/update_altstore_source.py "${update_args[@]}"
           fi
-          python3 scripts/update_altstore_source.py "${update_args[@]}"
 
           python3 scripts/validate_altstore_source.py site/altstore.json
           SOURCE_URL="$source_url" python3 - <<'PY'
@@ -135,10 +146,9 @@ jobs:
           from pathlib import Path
 
           value = json.dumps(os.environ["SOURCE_URL"], ensure_ascii=False)
-          Path("site/config.js").write_text(
-              f"window.IOS_PACK_SOURCE_URL = {value};\n",
-              encoding="utf-8",
-          )
+          path = Path("site/config.js")
+          with path.open("a", encoding="utf-8") as config:
+              config.write(f"\nwindow.IOS_PACK_SOURCE_URL = {value};\n")
           PY
 
       - name: Envoyer l’artefact Pages

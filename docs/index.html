@@ -2,51 +2,205 @@
 <html lang="fr">
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#111827">
-    <title>Mes apps iOS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#07111f">
+    <meta name="color-scheme" content="dark">
+    <meta name="description" content="Pilotez vos projets, builds et releases iOS depuis l’iPhone.">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Forge iOS">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.github.com; img-src 'self' data:; style-src 'self'; script-src 'self'; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests">
+    <title>Forge iOS</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="assets/forge-icon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="styles.css">
     <script src="config.js" defer></script>
     <script src="app.js" defer></script>
   </head>
   <body>
+    <div class="ambient ambient-one" aria-hidden="true"></div>
+    <div class="ambient ambient-two" aria-hidden="true"></div>
+
+    <header class="topbar">
+      <a class="brand" href="#studio" aria-label="Forge iOS — accueil">
+        <img src="assets/forge-icon.svg" alt="" width="38" height="38">
+        <span><strong>Forge</strong><small>iOS depuis l’iPhone</small></span>
+      </a>
+      <button id="connection-button" class="connection-pill" type="button" aria-controls="connection-panel">
+        <span id="connection-dot" class="status-dot"></span>
+        <span id="connection-label">Mode public</span>
+      </button>
+    </header>
+
     <main>
-      <section class="hero">
-        <p class="eyebrow">SOURCE ALTSTORE PERSONNELLE</p>
-        <h1>Installer mes builds iOS,<br>directement sur l’iPhone.</h1>
-        <p class="intro">Les IPA sont compilées sans signature sur GitHub, puis
-          AltStore ou SideStore les signe avec votre compte Apple gratuit.</p>
-        <div class="actions">
-          <a id="open-altstore" class="button primary" href="#">Ajouter à AltStore</a>
-          <button id="copy-source" class="button secondary" type="button">Copier l’URL</button>
+      <section id="studio" class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">VOTRE ATELIER DANS LA POCHE</p>
+          <h1>Codez. Compilez.<br><span>Publiez sur iOS.</span></h1>
+          <p class="intro">Une interface mobile pour modifier vos apps, lancer Xcode sur GitHub et récupérer vos IPA — sans Mac personnel.</p>
+          <div class="hero-actions">
+            <a class="button primary" href="#builds">Lancer un build</a>
+            <button id="install-pwa" class="button ghost" type="button">Installer l’app web</button>
+          </div>
+          <div class="pipeline" aria-label="Chaîne de compilation">
+            <span>iPhone</span><i></i><span>GitHub</span><i></i><span>macOS</span><i></i><span>IPA</span>
+          </div>
         </div>
-        <code id="source-url" class="source-url">Chargement…</code>
-        <p id="copy-status" class="status" role="status" aria-live="polite"></p>
+
+        <aside id="connection-panel" class="glass connection-card" aria-labelledby="connection-title">
+          <div class="card-heading">
+            <div>
+              <p class="eyebrow">CONNEXION</p>
+              <h2 id="connection-title">Dépôt GitHub</h2>
+            </div>
+            <span id="repo-visibility" class="badge">public</span>
+          </div>
+          <label for="repository">Dépôt</label>
+          <input id="repository" inputmode="url" autocomplete="off" spellcheck="false" placeholder="utilisateur/depot">
+          <label for="github-token">Jeton d’accès <span>— requis pour écrire</span></label>
+          <div class="secret-field">
+            <input id="github-token" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="github_pat_…">
+            <button id="toggle-token" type="button" aria-label="Afficher ou masquer le jeton">Voir</button>
+          </div>
+          <p class="security-note">Le jeton reste dans la session Safari. Il n’est ni envoyé à notre serveur, ni enregistré dans GitHub Pages.</p>
+          <div class="card-actions">
+            <button id="connect-github" class="button primary compact" type="button">Connecter</button>
+            <button id="disconnect-github" class="button text compact" type="button" hidden>Déconnecter</button>
+          </div>
+          <details>
+            <summary>Créer un jeton aux bonnes permissions</summary>
+            <p>Créez un jeton fin limité à ce dépôt, avec <strong>Actions : lecture/écriture</strong> et <strong>Contents : lecture/écriture</strong>.</p>
+            <a class="inline-link" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener noreferrer">Ouvrir les réglages GitHub ↗</a>
+          </details>
+          <p id="connection-status" class="live-status" role="status" aria-live="polite"></p>
+        </aside>
       </section>
 
-      <section class="panel" aria-labelledby="apps-title">
-        <div class="section-heading">
-          <p class="eyebrow">BUILDS DISPONIBLES</p>
-          <h2 id="apps-title">Applications</h2>
+      <nav class="section-nav" aria-label="Sections de l’application">
+        <a href="#builds">Compiler</a>
+        <a href="#activity">Activité</a>
+        <a href="#code">Code</a>
+        <a href="#install">Installer</a>
+      </nav>
+
+      <section id="builds" class="section-block">
+        <div class="section-title">
+          <div><p class="eyebrow">COMPILATION DISTANTE</p><h2>Que voulez-vous construire ?</h2></div>
+          <span class="section-number">01</span>
         </div>
-        <div id="apps" class="apps">
-          <p class="muted">Lecture de la source AltStore…</p>
+
+        <div class="build-grid">
+          <label class="build-choice selected">
+            <input type="radio" name="project" value="swift" checked>
+            <span class="choice-icon swift">S</span>
+            <span><strong>SwiftUI natif</strong><small>Rapide · Xcode · iOS</small></span>
+            <span class="checkmark">✓</span>
+          </label>
+          <label class="build-choice">
+            <input type="radio" name="project" value="react-native">
+            <span class="choice-icon react">R</span>
+            <span><strong>React Native</strong><small>TypeScript · CocoaPods</small></span>
+            <span class="checkmark">✓</span>
+          </label>
+        </div>
+
+        <div class="glass build-console">
+          <div class="build-fields">
+            <div>
+              <label for="version">Version de publication</label>
+              <div class="version-field"><span>v</span><input id="version" inputmode="decimal" value="1.0.0" pattern="[0-9]+\.[0-9]+\.[0-9]+"></div>
+            </div>
+            <div>
+              <label for="branch">Branche</label>
+              <input id="branch" value="main" autocomplete="off" spellcheck="false">
+            </div>
+          </div>
+          <div class="build-actions">
+            <button id="test-build" class="button ghost" type="button">Tester sans publier</button>
+            <button id="release-build" class="button accent" type="button">Compiler et publier</button>
+          </div>
+          <p id="build-status" class="live-status" role="status" aria-live="polite"></p>
+          <p class="hint">Le test lance le workflow manuellement. La publication crée un tag et une Release contenant l’IPA.</p>
         </div>
       </section>
 
-      <section class="steps" aria-labelledby="steps-title">
-        <div class="section-heading">
-          <p class="eyebrow">EN TROIS ÉTAPES</p>
-          <h2 id="steps-title">Installation</h2>
+      <section id="activity" class="section-block">
+        <div class="section-title">
+          <div><p class="eyebrow">TEMPS RÉEL</p><h2>Builds et publications</h2></div>
+          <div class="title-actions"><button id="refresh-activity" class="icon-button" type="button" aria-label="Actualiser">↻</button><span class="section-number">02</span></div>
         </div>
-        <ol>
-          <li><span>1</span><div><strong>Installez AltStore ou SideStore</strong><p>La configuration initiale suit la documentation du projet choisi.</p></div></li>
-          <li><span>2</span><div><strong>Ajoutez cette source</strong><p>Utilisez le bouton AltStore ou collez l’URL dans Sources.</p></div></li>
-          <li><span>3</span><div><strong>Rafraîchissez avant 7 jours</strong><p>Un compte Apple gratuit exige le renouvellement régulier de la signature.</p></div></li>
-        </ol>
+        <div class="activity-grid">
+          <div class="glass activity-panel">
+            <h3>Exécutions récentes</h3>
+            <div id="workflow-runs" class="list"><p class="empty">Chargement…</p></div>
+          </div>
+          <div class="glass activity-panel">
+            <h3>IPA publiées</h3>
+            <div id="releases" class="list"><p class="empty">Chargement…</p></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="code" class="section-block">
+        <div class="section-title">
+          <div><p class="eyebrow">ÉDITEUR MOBILE</p><h2>Modifier le projet</h2></div>
+          <span class="section-number">03</span>
+        </div>
+        <div class="editor-layout">
+          <aside class="glass file-picker">
+            <h3>Raccourcis</h3>
+            <button class="file-shortcut active" data-path="examples/swift/HelloSwift/HelloSwift/ContentView.swift" type="button"><span class="file-dot swift"></span><span>ContentView.swift<small>Interface SwiftUI</small></span></button>
+            <button class="file-shortcut" data-path="examples/react-native/HelloReactNative/App.tsx" type="button"><span class="file-dot react"></span><span>App.tsx<small>Interface React Native</small></span></button>
+            <button class="file-shortcut" data-path=".ios-release/swift.env" type="button"><span class="file-dot config"></span><span>swift.env<small>Réglages du build</small></span></button>
+            <button class="file-shortcut" data-path=".ios-release/react-native.env" type="button"><span class="file-dot config"></span><span>react-native.env<small>Réglages du build</small></span></button>
+            <label for="file-path">Autre fichier</label>
+            <div class="path-field"><input id="file-path" spellcheck="false" value="examples/swift/HelloSwift/HelloSwift/ContentView.swift"><button id="open-file" type="button">Ouvrir</button></div>
+          </aside>
+          <div class="glass editor-card">
+            <div class="editor-toolbar">
+              <div><span class="window-dot red"></span><span class="window-dot yellow"></span><span class="window-dot green"></span></div>
+              <code id="editor-filename">ContentView.swift</code>
+              <span id="editor-state">lecture seule</span>
+            </div>
+            <textarea id="code-editor" aria-label="Code du fichier" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="Connectez GitHub puis ouvrez un fichier…" readonly></textarea>
+            <div class="editor-footer">
+              <p id="editor-status" class="live-status" role="status" aria-live="polite"></p>
+              <button id="save-file" class="button accent compact" type="button" disabled>Enregistrer sur GitHub</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="install" class="section-block install-section">
+        <div class="section-title">
+          <div><p class="eyebrow">DISTRIBUTION PERSONNELLE</p><h2>Installer les builds</h2></div>
+          <span class="section-number">04</span>
+        </div>
+        <div class="install-grid">
+          <div class="glass source-card">
+            <p class="mini-label">SOURCE ALTSTORE / SIDESTORE</p>
+            <code id="source-url">Chargement…</code>
+            <div class="card-actions">
+              <a id="open-altstore" class="button accent compact" href="#">Ouvrir dans AltStore</a>
+              <button id="copy-source" class="button ghost compact" type="button">Copier l’URL</button>
+            </div>
+            <p id="copy-status" class="live-status" role="status" aria-live="polite"></p>
+          </div>
+          <div class="glass apps-card">
+            <div class="apps-heading"><h3>Applications disponibles</h3><span id="apps-count" class="badge">0</span></div>
+            <div id="apps" class="apps-list"><p class="empty">Lecture de la source…</p></div>
+          </div>
+        </div>
+        <div class="limitation"><strong>À savoir</strong><p>GitHub compile l’IPA, mais iOS exige toujours une signature. Avec un compte Apple gratuit : 7 jours, 3 apps actives et mode développeur requis pour les apps personnelles.</p></div>
       </section>
     </main>
-    <footer>Builds personnels · Pas de distribution App Store</footer>
+
+    <footer>
+      <img src="assets/forge-icon.svg" alt="" width="30" height="30">
+      <p>Forge iOS · Code ouvert · Aucun secret stocké sur le site</p>
+      <a href="https://github.com/kfsks0adfg/ios-build-altstore" target="_blank" rel="noopener noreferrer">Voir le dépôt ↗</a>
+    </footer>
+
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
   </body>
 </html>
-

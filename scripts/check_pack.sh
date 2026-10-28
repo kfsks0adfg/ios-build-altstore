@@ -10,9 +10,22 @@ python3 scripts/validate_altstore_source.py docs/altstore.template.json --allow-
 python3 -m json.tool examples/react-native/HelloReactNative/package.json >/dev/null
 python3 -m json.tool examples/react-native/HelloReactNative/app.json >/dev/null
 python3 -m json.tool examples/react-native/HelloReactNative/ios/HelloReactNative/Images.xcassets/Contents.json >/dev/null
+python3 -m json.tool docs/manifest.webmanifest >/dev/null
+
+for asset in \
+  docs/index.html \
+  docs/styles.css \
+  docs/app.js \
+  docs/config.js \
+  docs/service-worker.js \
+  docs/assets/forge-icon.svg; do
+  test -s "$asset"
+done
 
 if command -v node >/dev/null 2>&1; then
   node --check docs/app.js
+  node --check docs/config.js
+  node --check docs/service-worker.js
 fi
 
 echo "Contrôles locaux terminés. La compilation Xcode nécessite un runner macOS."

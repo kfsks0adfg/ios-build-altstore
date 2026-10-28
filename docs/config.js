@@ -1,2 +1,5 @@
-window.IOS_PACK_SOURCE_URL = new URL('altstore.json', window.location.href).href;
-
+window.IOS_STUDIO_CONFIG = {
+  repository: 'kfsks0adfg/ios-build-altstore',
+  branch: 'main',
+  workflow: 'ios-release.yml',
+};

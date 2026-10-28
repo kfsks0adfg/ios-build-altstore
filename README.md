@@ -10,6 +10,12 @@ Deux projets exécutables servent de référence :
 - `examples/swift/HelloSwift` : application SwiftUI native ;
 - `examples/react-native/HelloReactNative` : application React Native 0.88.1.
 
+Le dépôt publie aussi **Forge iOS**, une PWA conçue pour l’iPhone. Elle permet de
+consulter les Actions et Releases, modifier les principaux fichiers, lancer un
+build de test et créer le tag d’une publication sans passer par l’interface
+GitHub classique. Elle s’installe depuis Safari avec **Partager → Sur l’écran
+d’accueil** et ne demande ni signature ni mode développeur.
+
 ## Ce que ce pack permet — et ne permet pas
 
 - Aucun Mac personnel ni abonnement Apple Developer payant n’est nécessaire.
@@ -39,6 +45,13 @@ Deux projets exécutables servent de référence :
 5. À la fin, ouvrez l’URL indiquée par le job `publish-source`, puis touchez
    **Ajouter à AltStore**. Pour SideStore, copiez l’URL `altstore.json` affichée
    par la page et ajoutez-la comme source.
+
+L’adresse de Forge iOS est
+`https://UTILISATEUR.github.io/DEPOT/`. La consultation d’un dépôt public ne
+demande aucune authentification. Pour modifier ou compiler, utilisez un jeton
+GitHub fin limité au dépôt, avec **Actions : lecture/écriture** et **Contents :
+lecture/écriture**. Le jeton reste dans la session du navigateur et disparaît à
+la déconnexion. Le guide complet est dans [Forge iOS](docs/STUDIO_IOS.md).
 
 ## Adapter le pack à votre app
 

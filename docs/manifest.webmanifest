@@ -1,0 +1,22 @@
+{
+  "name": "Forge iOS",
+  "short_name": "Forge iOS",
+  "description": "Pilotez vos projets, builds et releases iOS depuis l’iPhone.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#07111f",
+  "theme_color": "#07111f",
+  "lang": "fr",
+  "categories": ["developer", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "assets/forge-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
