@@ -18,7 +18,9 @@ for asset in \
   docs/app.js \
   docs/config.js \
   docs/service-worker.js \
-  docs/assets/forge-icon.svg; do
+  docs/assets/forge-icon.svg \
+  docs/assets/forge-icon-180.png \
+  docs/assets/forge-icon-512.png; do
   test -s "$asset"
 done
 

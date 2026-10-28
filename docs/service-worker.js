@@ -1,4 +1,4 @@
-const CACHE_NAME = 'forge-ios-v1';
+const CACHE_NAME = 'forge-ios-v2';
 const APP_SHELL = [
   './',
   './index.html',
@@ -7,6 +7,8 @@ const APP_SHELL = [
   './config.js',
   './manifest.webmanifest',
   './assets/forge-icon.svg',
+  './assets/forge-icon-180.png',
+  './assets/forge-icon-512.png',
   './assets/swift-icon.svg',
   './assets/react-native-icon.svg',
 ];
@@ -38,6 +40,10 @@ self.addEventListener('fetch', (event) => {
         }
         return response;
       })
-      .catch(() => caches.match(event.request).then((cached) => cached || caches.match('./index.html'))),
+      .catch(() => caches.match(event.request).then((cached) => {
+        if (cached) return cached;
+        if (event.request.mode === 'navigate') return caches.match('./index.html');
+        return Response.error();
+      })),
   );
 });

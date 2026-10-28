@@ -482,6 +482,7 @@
     window.addEventListener('beforeunload', (event) => {
       if (state.file && elements.editor.value !== state.file.original) {
         event.preventDefault();
+        event.returnValue = '';
       }
     });
   }
